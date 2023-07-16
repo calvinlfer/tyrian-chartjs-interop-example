@@ -1,0 +1,26 @@
+target 
+*.class
+*.iml 
+*.ipr 
+*.iws 
+.idea 
+out
+.vscode
+metals.sbt
+.metals
+.bloop
+.bsp
+*.semanticdb
+node_modules
+semanticdb.sbt
+.cache
+dist
+.DS_Store
+credentials.sh
+.DS_Store
+.parcel-cache
+website/public/
+
+# Direnv
+.direnv
+.envrc
