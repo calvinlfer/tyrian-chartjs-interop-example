@@ -3,12 +3,16 @@ import scala.language.postfixOps
 
 Global / onChangedBuildSource := ReloadOnSourceChanges
 
-lazy val myawesomewebapp =
-  (project in file("."))
+lazy val root =
+  project
+    .in(file("."))
+    .aggregate(frontend, backend)
+
+lazy val frontend =
+  (project in file("frontend"))
     .enablePlugins(ScalaJSPlugin, ScalablyTypedConverterPlugin)
     .settings(
       name         := "tyrian-chart-js-interop",
-      version      := "0.0.1",
       scalaVersion := "3.3.0",
       organization := "myorg",
       Compile / npmDependencies ++= Seq(
@@ -32,3 +36,31 @@ lazy val myawesomewebapp =
     )
 // use ~fastOptJS::webpack
 // use fullOptJS::webpack for production
+
+lazy val backend =
+  project
+    .in(file("backend"))
+    .settings(
+      name         := "tyrian-chart-js-interop-backend",
+      scalaVersion := "3.3.0",
+      libraryDependencies ++= {
+        val http4s        = "org.http4s"
+        val http4sVersion = "0.23.22"
+        Seq(
+          http4s %% "http4s-ember-server" % http4sVersion,
+          http4s %% "http4s-dsl"          % http4sVersion
+        )
+      }
+    )
+
+lazy val fastOptCopy =
+  taskKey[Unit]("Copies the output of Scala.js to the backend resources")
+
+fastOptCopy := {
+  val scalaJsOutput = (frontend / Compile / fastOptJS / webpack).value
+    .filter(_.data.name.contains("bundle"))
+    .head
+  val backendResources = (backend / Compile / resourceDirectory).value
+  val targetFile       = backendResources / "main.js"
+  IO.copyFile(scalaJsOutput.data, targetFile)
+}

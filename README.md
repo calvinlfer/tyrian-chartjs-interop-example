@@ -7,29 +7,28 @@ to interop with [Tyrian](https://tyrian.indigoengine.io).
 ## Instructions
 
 This project makes use of the ScalaJS Bundler plugin via ScalablyTyped so all
-dependencies (NPM and Scala.JS) are managed by SBT. To transpile Scala JS code
-to JavaScript, run:
+dependencies (NPM and Scala.JS) are managed by SBT.
+
+Usually, you would just run `sbt fastOptJS::webpack` to generate the bundle and
+then use a web server to serve the `index.html` file along with the generated JS
+bundle. However, we use HTTP4S to serve the files from the resources folder.
+
+In order to compile the JavaScript bundle and copy it to the resources folder of
+the backend, run:
 
 ```bash
-sbt fastOptJS::webpack
+sbt fastOptCopy
 ```
 
-This will generate
-`target/scala-3.3.0/scalajs-bundler/main/myawesomewebapp-fastopt-bundle.js`
-which is used by index.html
-
-You can use the following to automatically recompile when you change the code:
+You can then run the backend with:
 
 ```bash
-sbt ~fastOptJS::webpack
+sbt backend / run
 ```
 
-To run the web application, run:
+Alternatively, you can run the copy task in watch mode so that the bundle is
+automatically copied to the resources folder when it changes:
 
 ```bash
-npx http-server -c-1
+sbt ~fastOptCopy
 ```
-
-This starts up a web server on port 8080 and does not cache any files.
-
-Visit the root page to see the application
