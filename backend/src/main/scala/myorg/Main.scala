@@ -1,10 +1,12 @@
 package myorg
 
 import cats.effect.*
+import cats.effect.std.Console
+import com.comcast.ip4s.*
 import org.http4s.*
 import org.http4s.dsl.io.*
 import org.http4s.ember.server.*
-import com.comcast.ip4s.*
+import org.http4s.server.middleware.Logger
 
 object App extends IOApp.Simple:
 
@@ -24,13 +26,21 @@ object App extends IOApp.Simple:
         static(path.renderString, request)
     }
 
+  val loggedHttpRoutes = Logger
+    .httpRoutes[IO](
+      logHeaders = false,
+      logBody = true,
+      redactHeadersWhen = _ => false,
+      logAction = Some((msg: String) => Console[IO].println(msg))
+    )(httpRoutes)
+
   def run: IO[Unit] =
     val serverResource =
       EmberServerBuilder
         .default[IO]
         .withHost(ipv4"0.0.0.0")
         .withPort(port"8080")
-        .withHttpApp(httpRoutes.orNotFound)
+        .withHttpApp(loggedHttpRoutes.orNotFound)
         .build
 
     serverResource

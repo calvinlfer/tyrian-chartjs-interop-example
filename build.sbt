@@ -3,6 +3,15 @@ import scala.language.postfixOps
 
 Global / onChangedBuildSource := ReloadOnSourceChanges
 
+inThisBuild(
+  List(
+    scalaVersion      := "3.3.0",
+    scalafixOnCompile := true,
+    semanticdbEnabled := true,
+    semanticdbVersion := scalafixSemanticdb.revision
+  )
+)
+
 lazy val root =
   project
     .in(file("."))
@@ -13,7 +22,6 @@ lazy val frontend =
     .enablePlugins(ScalaJSPlugin, ScalablyTypedConverterPlugin)
     .settings(
       name         := "tyrian-chart-js-interop",
-      scalaVersion := "3.3.0",
       organization := "myorg",
       Compile / npmDependencies ++= Seq(
         "@types/chart.js" -> "2.9.11",
@@ -26,10 +34,7 @@ lazy val frontend =
       ),
       testFrameworks += new TestFramework("munit.Framework"),
       scalaJSLinkerConfig ~= { _.withModuleKind(ModuleKind.CommonJSModule) },
-      scalafixOnCompile := true,
-      semanticdbEnabled := true,
-      semanticdbVersion := scalafixSemanticdb.revision,
-      autoAPIMappings   := true,
+      autoAPIMappings := true,
       // Source maps seem to be broken with bundler
       Compile / fastOptJS / scalaJSLinkerConfig ~= { _.withSourceMap(false) },
       scalaJSUseMainModuleInitializer := true
@@ -41,14 +46,14 @@ lazy val backend =
   project
     .in(file("backend"))
     .settings(
-      name         := "tyrian-chart-js-interop-backend",
-      scalaVersion := "3.3.0",
+      name := "tyrian-chart-js-interop-backend",
       libraryDependencies ++= {
         val http4s        = "org.http4s"
         val http4sVersion = "0.23.22"
         Seq(
-          http4s %% "http4s-ember-server" % http4sVersion,
-          http4s %% "http4s-dsl"          % http4sVersion
+          http4s          %% "http4s-ember-server" % http4sVersion,
+          http4s          %% "http4s-dsl"          % http4sVersion,
+          "ch.qos.logback" % "logback-classic"     % "1.4.8"
         )
       }
     )
@@ -56,8 +61,17 @@ lazy val backend =
 lazy val fastOptCopy =
   taskKey[Unit]("Copies the output of Scala.js to the backend resources")
 
-fastOptCopy := {
-  val scalaJsOutput = (frontend / Compile / fastOptJS / webpack).value
+fastOptCopy := compileFrontendAndPlaceInBackendResource(fastOptJS).value
+
+lazy val fullOptCopy =
+  taskKey[Unit]("Copies the output of Scala.js to the backend resources")
+
+fullOptCopy := compileFrontendAndPlaceInBackendResource(fullOptJS).value
+
+def compileFrontendAndPlaceInBackendResource(
+    optJs: TaskKey[Attributed[File]]
+) = Def.task {
+  val scalaJsOutput = (frontend / Compile / optJs / webpack).value
     .filter(_.data.name.contains("bundle"))
     .head
   val backendResources = (backend / Compile / resourceDirectory).value
